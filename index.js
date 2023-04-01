@@ -1,67 +1,67 @@
-const express = require("express")
-const uuid = require("uuid")
-const port = 3000
+let cors = require("cors");
+const express = require("express");
+const uuid = require("uuid");
 
-const app = express()
-app.use(express.json())
+const port = 3001;
+const app = express();
+app.use(express.json());
+app.use(cors())
 
 // Query Params => meusite.com/users?name=Frederico&age=25 // FIltros
 // Route Params => /users/2 // BUSCAR, DELETAR OU ATUALIZAR ALGO ESPECIFICO
 // Body Params => "name": "Frederico", "Age": 23
 
+const users = [];
 
+const checkUserId = (request, response, next) => {
+  const { id } = request.params;
 
-const users = []
+  const index = users.findIndex((user) => user.id === id);
 
-const checkUserId = (request, response, next) =>{
-    const { id } = request.params
+  if (index < 0) {
+    return response.status(404).json({ message: "User not found" });
+  }
 
-    const index = users.findIndex(user => user.id === id)
-    
-    if( index < 0 ){
-        return response.status(404).json({message: "User not found"})
-    }
+  request.userIndex = index;
+  request.userId = id;
 
-    request.userIndex = index
-    request.userId = id
+  next();
+};
 
-    next()
-}
+app.get("/users", (request, response) => {
+  return response.json(users);
+});
 
+app.post("/users", (request, response) => {
+  const { name, age } = request.body;
 
-app.get('/users', (request, response) =>{
-    return response.json(users)
-})
+  const user = { id: uuid.v4(), name, age };
 
-app.post('/users', (request, response) =>{
-    const {name, age} = request.body
+  users.push(user);
 
-    const user = {id:uuid.v4(), name, age}
+  return response.status(201).json(user);
+});
 
-    users.push(user)
+app.put("/users/:id", checkUserId, (request, response) => {
+  const { name, age } = request.body;
+  const index = request.userIndex;
+  const id = request.userId;
 
-    return response.status(201).json(user)
-})
+  const updateUser = { id, name, age };
 
-app.put('/users/:id', checkUserId, (request, response) =>{
-    const { name, age} = request.body
-    const index = request.userIndex
-    const id = request.userId
+  users[index] = updateUser;
 
-    const updateUser = { id, name, age}
+  return response.json(updateUser);
+});
 
-    users[index] = updateUser
+app.delete("/users/:id", checkUserId, (request, response) => {
+  const index = request.userIndex;
+  users.splice(index, 1);
 
-    return response.json(updateUser)
-})
+  return response.status(204).json();
+});
 
-app.delete('/users/:id', checkUserId, (request, response) =>{
-    const index = request.userIndex
-    users.splice(index,1)
-
-    return response.status(204).json()
-})
-
-app.listen(port, () =>{ // Porta para a aplicacaonode
-    console.log(`🚀 Code is Running on the port ${port}`)
-}) 
+app.listen(port, () => {
+  // Porta para a aplicacaonode
+  console.log(`🚀 Code is Running on the port ${port}`);
+});
